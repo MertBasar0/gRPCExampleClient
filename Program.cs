@@ -1,13 +1,29 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
 using gRPCExample;
+using System.Linq.Expressions;
 
 GrpcChannel channel = GrpcChannel.ForAddress("https://localhost:7289", new GrpcChannelOptions() { MaxReceiveMessageSize = 2000000000});
-
 var client = new ExampleRPCServices.ExampleRPCServicesClient(channel);
+Bogus.Faker faker = new Bogus.Faker();
 
-#region bi
 
+
+
+#region bidirectional
+var bidirectionalWay = client.BidirectionalStreamingMethod();
+for (int i = 0; i < 3; i++)
+{
+    var blurredImage = faker.Image.PicsumUrl(width:2560, height: 1440);
+    await bidirectionalWay.RequestStream.WriteAsync(new bidirectionalWayExampleRequest { ClientSideImage = blurredImage });
+}
+
+await bidirectionalWay.RequestStream.CompleteAsync();
+
+await foreach (var item in bidirectionalWay.ResponseStream.ReadAllAsync())
+{
+    Console.WriteLine(item.ManipulatedServerSideImage);
+}
 #endregion
 #region ClientStream
 //var request = new exampleRequest()
@@ -41,8 +57,6 @@ var client = new ExampleRPCServices.ExampleRPCServicesClient(channel);
 //    index++;
 //    Console.WriteLine($"{item}\nişlem bitti\n\n\n\n\n{index}");
 //}
-
-//var res = await client.UnaryTriggerAsync(triggerMessage);
 
 //Console.WriteLine($"{res}\nişlem bitti");
 #endregion
